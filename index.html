@@ -1,0 +1,613 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no"/>
+<meta name="theme-color" content="#22d3ee"/>
+<meta name="apple-mobile-web-app-capable" content="yes"/>
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"/>
+<meta name="apple-mobile-web-app-title" content="VTCFleet"/>
+<meta name="mobile-web-app-capable" content="yes"/>
+<meta name="description" content="Gestion de flotte VTC"/>
+<link rel="manifest" href="manifest.json"/>
+<link rel="apple-touch-icon" href="icons/icon-192.png"/>
+<link rel="icon" href="icons/icon-192.png"/>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet"/>
+<title>VTCFleet</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+html,body{height:100%;overflow:hidden;background:#060d1a;color:#e2e8f0;font-family:'Inter',sans-serif}
+:root{
+  --bg:#060d1a;--bg2:rgba(255,255,255,0.04);--border:rgba(255,255,255,0.08);
+  --cyan:#22d3ee;--green:#4ade80;--amber:#f59e0b;--red:#f87171;--purple:#a78bfa;
+  --text:#f1f5f9;--muted:#94a3b8;--dim:#475569;--darker:#64748b;
+}
+#app{display:flex;flex-direction:column;height:100%;height:100dvh}
+
+/* HEADER */
+#header{
+  background:rgba(6,13,26,0.95);backdrop-filter:blur(20px);
+  border-bottom:1px solid var(--border);padding:14px 20px 10px;
+  display:flex;align-items:center;justify-content:space-between;flex-shrink:0;
+  position:sticky;top:0;z-index:100;
+}
+.logo{font-family:'Syne',sans-serif;font-size:20px;font-weight:800;color:var(--text)}
+.logo span{color:var(--cyan)}
+.header-time{font-size:12px;color:var(--dim);text-align:right;line-height:1.6}
+.header-badge{background:var(--red);color:#fff;border-radius:99px;font-size:10px;font-weight:800;padding:2px 7px;margin-left:6px;vertical-align:middle}
+
+/* MAIN SCROLL AREA */
+#main{flex:1;overflow-y:auto;overflow-x:hidden;-webkit-overflow-scrolling:touch;padding:16px 16px 8px}
+
+/* BOTTOM NAV */
+#nav{
+  background:rgba(6,13,26,0.97);backdrop-filter:blur(20px);
+  border-top:1px solid var(--border);display:flex;flex-shrink:0;
+  padding-bottom:env(safe-area-inset-bottom,0px);
+}
+.nav-btn{
+  flex:1;display:flex;flex-direction:column;align-items:center;gap:3px;
+  padding:10px 4px;border:none;background:none;cursor:pointer;
+  color:var(--dim);font-size:9px;font-weight:600;letter-spacing:0.04em;
+  text-transform:uppercase;transition:color 0.2s;position:relative;
+  font-family:'Inter',sans-serif;
+}
+.nav-btn.active{color:var(--cyan)}
+.nav-btn .icon{font-size:20px;line-height:1}
+.nav-dot{position:absolute;top:6px;right:calc(50% - 18px);width:8px;height:8px;background:var(--red);border-radius:50%;border:2px solid var(--bg)}
+
+/* CARDS */
+.card{background:var(--bg2);border:1px solid var(--border);border-radius:14px;padding:16px;margin-bottom:12px}
+.card-header{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:12px}
+.card-title{font-weight:700;color:var(--text);font-size:15px}
+.card-sub{font-size:12px;color:var(--dim);margin-top:2px;font-family:monospace}
+
+/* STAT GRID */
+.stat-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:16px}
+.stat-card{background:var(--bg2);border:1px solid var(--border);border-radius:14px;padding:14px;position:relative;overflow:hidden}
+.stat-card .val{font-family:'Syne',sans-serif;font-size:24px;font-weight:800;color:var(--text);margin:6px 0 2px}
+.stat-card .lbl{font-size:10px;color:var(--dim);text-transform:uppercase;letter-spacing:0.08em;font-weight:600}
+.stat-card .sub{font-size:11px;font-weight:600;margin-top:4px}
+.stat-icon{font-size:22px;margin-bottom:2px}
+
+/* BADGE */
+.badge{display:inline-block;padding:3px 10px;border-radius:99px;font-size:11px;font-weight:700;white-space:nowrap}
+
+/* FUEL BAR */
+.fuel-wrap{display:flex;align-items:center;gap:8px;margin-top:8px}
+.fuel-track{flex:1;height:5px;background:rgba(255,255,255,0.08);border-radius:99px}
+.fuel-fill{height:100%;border-radius:99px;transition:width 0.5s ease}
+.fuel-label{font-size:11px;font-weight:700;min-width:32px}
+
+/* TABLE */
+.tbl{width:100%;border-collapse:collapse}
+.tbl th{font-size:10px;color:var(--dim);text-transform:uppercase;letter-spacing:0.08em;padding:8px 10px;text-align:left;border-bottom:1px solid var(--border)}
+.tbl td{padding:12px 10px;border-bottom:1px solid rgba(255,255,255,0.04);font-size:13px;color:var(--muted)}
+.tbl td:first-child{color:var(--text);font-weight:600}
+.tbl tr:active td{background:rgba(255,255,255,0.03)}
+
+/* ALERT ITEM */
+.alert-item{display:flex;gap:12px;align-items:flex-start;padding:14px;border-radius:12px;margin-bottom:10px;cursor:pointer}
+.alert-icon{font-size:20px;flex-shrink:0}
+.alert-msg{font-size:13px;color:#cbd5e1;line-height:1.5;flex:1}
+.alert-vehicle{font-size:11px;color:var(--dim);font-family:monospace;margin-top:3px}
+.dismiss-btn{background:rgba(255,255,255,0.06);border:1px solid var(--border);border-radius:8px;color:var(--muted);padding:5px 12px;font-size:12px;cursor:pointer;flex-shrink:0;font-family:inherit}
+
+/* SEARCH */
+.search-wrap{margin-bottom:14px}
+.search-input{width:100%;background:rgba(255,255,255,0.06);border:1px solid var(--border);border-radius:12px;padding:11px 14px;color:var(--text);font-size:14px;outline:none;font-family:'Inter',sans-serif}
+.search-input::placeholder{color:var(--dim)}
+
+/* FAB */
+.fab{
+  position:fixed;bottom:calc(68px + env(safe-area-inset-bottom,0px));right:16px;
+  width:52px;height:52px;border-radius:50%;background:var(--cyan);color:var(--bg);
+  border:none;font-size:26px;cursor:pointer;display:flex;align-items:center;justify-content:center;
+  box-shadow:0 4px 20px rgba(34,211,238,0.4);z-index:90;font-weight:700;
+  transition:transform 0.15s;
+}
+.fab:active{transform:scale(0.93)}
+
+/* MODAL */
+.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,0.75);z-index:200;display:flex;align-items:flex-end;justify-content:center}
+.modal-sheet{background:#0a1628;border-radius:20px 20px 0 0;width:100%;max-height:88dvh;overflow-y:auto;padding:0 20px 32px;border-top:1px solid rgba(255,255,255,0.1)}
+.modal-handle{width:36px;height:4px;background:rgba(255,255,255,0.15);border-radius:99px;margin:12px auto 20px}
+.modal-title{font-family:'Syne',sans-serif;font-size:19px;font-weight:800;color:var(--text);margin-bottom:20px}
+.modal-close{float:right;background:none;border:none;color:var(--dim);font-size:20px;cursor:pointer;padding:4px}
+.field{margin-bottom:14px}
+.field-label{font-size:11px;color:var(--dim);text-transform:uppercase;letter-spacing:0.1em;margin-bottom:5px}
+.field-value{color:#e2e8f0;font-weight:600;font-size:14px}
+.modal-input{width:100%;background:rgba(255,255,255,0.07);border:1px solid var(--border);border-radius:10px;padding:12px 14px;color:var(--text);font-size:14px;outline:none;font-family:'Inter',sans-serif;margin-bottom:12px}
+.modal-select{width:100%;background:#0f1f36;border:1px solid var(--border);border-radius:10px;padding:12px 14px;color:var(--text);font-size:14px;outline:none;font-family:'Inter',sans-serif;margin-bottom:12px;appearance:none}
+.btn-primary{width:100%;background:var(--cyan);color:var(--bg);border:none;border-radius:12px;padding:14px;font-weight:700;font-size:15px;cursor:pointer;font-family:'Inter',sans-serif;margin-top:4px}
+.btn-primary:active{opacity:0.85}
+.btn-danger{width:100%;background:rgba(248,113,113,0.1);color:var(--red);border:1px solid rgba(248,113,113,0.3);border-radius:12px;padding:13px;font-weight:700;font-size:14px;cursor:pointer;font-family:'Inter',sans-serif;margin-top:10px}
+.btn-row{display:flex;gap:10px;margin-top:8px}
+.btn-row .btn-primary,.btn-row .btn-danger{margin-top:0}
+
+/* INSTALL BANNER */
+.install-banner{background:linear-gradient(135deg,rgba(34,211,238,0.15),rgba(167,139,250,0.1));border:1px solid rgba(34,211,238,0.3);border-radius:14px;padding:14px 16px;margin-bottom:16px;display:flex;align-items:center;gap:12px}
+.install-banner-text{flex:1;font-size:13px;color:#cbd5e1;line-height:1.5}
+.install-banner-btn{background:var(--cyan);color:var(--bg);border:none;border-radius:8px;padding:8px 14px;font-size:13px;font-weight:700;cursor:pointer;white-space:nowrap;font-family:inherit}
+
+/* section titles */
+.section-title{font-family:'Syne',sans-serif;font-size:22px;font-weight:800;color:var(--text);margin-bottom:4px}
+.section-sub{font-size:13px;color:var(--dim);margin-bottom:16px}
+
+/* SPINNER */
+.empty{text-align:center;padding:40px 20px;color:var(--dim);font-size:14px}
+
+/* Divider */
+.divider{height:1px;background:var(--border);margin:12px 0}
+
+/* ios safe area top */
+#header{padding-top:calc(14px + env(safe-area-inset-top,0px))}
+</style>
+</head>
+<body>
+<div id="app">
+  <div id="header">
+    <div>
+      <div class="logo"><span>VTC</span>Fleet</div>
+    </div>
+    <div class="header-time" id="clock"></div>
+  </div>
+  <div id="main"></div>
+  <nav id="nav">
+    <button class="nav-btn active" data-tab="dashboard" onclick="switchTab('dashboard')">
+      <span class="icon">▦</span>Accueil
+    </button>
+    <button class="nav-btn" data-tab="vehicles" onclick="switchTab('vehicles')">
+      <span class="icon">🚗</span>Véhicules
+    </button>
+    <button class="nav-btn" data-tab="drivers" onclick="switchTab('drivers')">
+      <span class="icon">👤</span>Chauffeurs
+    </button>
+    <button class="nav-btn" data-tab="trips" onclick="switchTab('trips')">
+      <span class="icon">🗺️</span>Courses
+    </button>
+    <button class="nav-btn" data-tab="alerts" onclick="switchTab('alerts')" id="nav-alerts">
+      <span class="icon">🔔</span>Alertes
+      <span class="nav-dot" id="alert-dot"></span>
+    </button>
+  </nav>
+</div>
+
+<!-- MODAL -->
+<div id="modal-overlay" class="modal-overlay" style="display:none" onclick="closeModal(event)">
+  <div class="modal-sheet" onclick="event.stopPropagation()">
+    <div class="modal-handle"></div>
+    <div id="modal-content"></div>
+  </div>
+</div>
+
+<script>
+// ── DATA ────────────────────────────────────────────────────────────────────
+let vehicles = JSON.parse(localStorage.getItem('vtc_vehicles') || 'null') || [
+  {id:1,plate:"AB-123-CD",model:"Tesla Model 3",driver:"Karim Benali",status:"En course",km:87420,fuel:82,lastService:"2026-03-10",revenue:3840},
+  {id:2,plate:"EF-456-GH",model:"Toyota Camry Hybrid",driver:"Sophie Durand",status:"Disponible",km:124300,fuel:45,lastService:"2026-02-18",revenue:5210},
+  {id:3,plate:"IJ-789-KL",model:"Mercedes Classe E",driver:"Thomas Petit",status:"Maintenance",km:210050,fuel:20,lastService:"2026-04-01",revenue:7620},
+  {id:4,plate:"MN-012-OP",model:"BMW Série 5",driver:"Amina Ndiaye",status:"En course",km:56900,fuel:68,lastService:"2026-04-15",revenue:2980},
+  {id:5,plate:"QR-345-ST",model:"Peugeot 508",driver:"Lucas Martin",status:"Hors service",km:189000,fuel:0,lastService:"2026-01-05",revenue:4150},
+  {id:6,plate:"UV-678-WX",model:"Renault Talisman",driver:"Chloé Bernard",status:"Disponible",km:98700,fuel:91,lastService:"2026-03-28",revenue:3320},
+];
+
+let drivers = JSON.parse(localStorage.getItem('vtc_drivers') || 'null') || [
+  {id:1,name:"Karim Benali",phone:"06 12 34 56 78",license:"B+VTC",rating:4.8,trips:1240,status:"Actif",joined:"2022-06-15"},
+  {id:2,name:"Sophie Durand",phone:"06 87 65 43 21",license:"B+VTC",rating:4.9,trips:1890,status:"Actif",joined:"2021-03-01"},
+  {id:3,name:"Thomas Petit",phone:"07 11 22 33 44",license:"B+VTC",rating:4.6,trips:980,status:"En pause",joined:"2023-01-20"},
+  {id:4,name:"Amina Ndiaye",phone:"06 55 66 77 88",license:"B+VTC",rating:4.7,trips:642,status:"Actif",joined:"2023-09-10"},
+  {id:5,name:"Lucas Martin",phone:"07 44 55 66 77",license:"B+VTC",rating:4.3,trips:1100,status:"Suspendu",joined:"2022-11-05"},
+  {id:6,name:"Chloé Bernard",phone:"06 99 88 77 66",license:"B+VTC",rating:4.95,trips:2100,status:"Actif",joined:"2020-07-22"},
+];
+
+let trips = [
+  {id:1,driver:"Karim Benali",from:"CDG Terminal 2",to:"Paris 8e",date:"2026-05-21",duration:"42 min",distance:"31 km",fare:68,status:"Terminée"},
+  {id:2,driver:"Sophie Durand",from:"Gare de Lyon",to:"Versailles",date:"2026-05-21",duration:"55 min",distance:"24 km",fare:52,status:"Terminée"},
+  {id:3,driver:"Amina Ndiaye",from:"Opéra",to:"Boulogne-Billancourt",date:"2026-05-21",duration:"28 min",distance:"12 km",fare:35,status:"En cours"},
+  {id:4,driver:"Chloé Bernard",from:"La Défense",to:"CDG Terminal 1",date:"2026-05-21",duration:"38 min",distance:"29 km",fare:65,status:"Terminée"},
+  {id:5,driver:"Karim Benali",from:"Montparnasse",to:"Roissy",date:"2026-05-20",duration:"50 min",distance:"38 km",fare:79,status:"Terminée"},
+];
+
+let alerts = JSON.parse(localStorage.getItem('vtc_alerts') || 'null') || [
+  {id:1,type:"warning",msg:"Peugeot 508 – Contrôle technique expiré",vehicle:"QR-345-ST"},
+  {id:2,type:"danger",msg:"Mercedes Classe E – Vidange dépassée de 5 000 km",vehicle:"IJ-789-KL"},
+  {id:3,type:"info",msg:"Toyota Camry Hybrid – Révision dans 3 jours",vehicle:"EF-456-GH"},
+  {id:4,type:"warning",msg:"Thomas Petit – Formation annuelle à renouveler",vehicle:null},
+];
+
+let currentTab = 'dashboard';
+let searchVal = '';
+let deferredPrompt = null;
+
+// ── PERSIST ─────────────────────────────────────────────────────────────────
+function save() {
+  localStorage.setItem('vtc_vehicles', JSON.stringify(vehicles));
+  localStorage.setItem('vtc_drivers', JSON.stringify(drivers));
+  localStorage.setItem('vtc_alerts', JSON.stringify(alerts));
+}
+
+// ── HELPERS ──────────────────────────────────────────────────────────────────
+function statusColor(s){return{
+  "En course":"#22d3ee","Disponible":"#4ade80","Maintenance":"#f59e0b","Hors service":"#f87171",
+  "Actif":"#4ade80","En pause":"#f59e0b","Suspendu":"#f87171","En cours":"#22d3ee","Terminée":"#4ade80"
+}[s]||"#94a3b8"}
+
+function badge(s){const c=statusColor(s);return`<span class="badge" style="background:${c}20;color:${c};border:1px solid ${c}40">${s}</span>`}
+
+function fuelBar(v){const c=v>50?'#4ade80':v>20?'#f59e0b':'#f87171';return`
+<div class="fuel-wrap">
+  <div class="fuel-track"><div class="fuel-fill" style="width:${v}%;background:${c}"></div></div>
+  <span class="fuel-label" style="color:${c}">${v}%</span>
+</div>`}
+
+function alertColor(t){return{warning:"#f59e0b",danger:"#f87171",info:"#22d3ee"}[t]||"#94a3b8"}
+function alertIcon(t){return{warning:"⚠️",danger:"🚨",info:"ℹ️"}[t]||"•"}
+
+function n(x){return Number(x).toLocaleString('fr-FR')}
+
+// ── CLOCK ───────────────────────────────────────────────────────────────────
+function updateClock(){
+  const now=new Date();
+  document.getElementById('clock').innerHTML=
+    `<div style="font-size:15px;font-weight:700;font-family:'Syne',sans-serif;color:#475569">${now.toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'})}</div>
+     <div style="font-size:10px;color:#334155">${now.toLocaleDateString('fr-FR',{weekday:'short',day:'numeric',month:'short'})}</div>`;
+}
+setInterval(updateClock,1000);updateClock();
+
+// ── ALERT DOT ────────────────────────────────────────────────────────────────
+function updateAlertDot(){
+  document.getElementById('alert-dot').style.display=alerts.length?'block':'none';
+}
+
+// ── NAV ──────────────────────────────────────────────────────────────────────
+function switchTab(tab){
+  currentTab=tab;searchVal='';
+  document.querySelectorAll('.nav-btn').forEach(b=>b.classList.toggle('active',b.dataset.tab===tab));
+  removeFAB();
+  render();
+}
+
+function removeFAB(){const f=document.getElementById('fab');if(f)f.remove()}
+
+function addFAB(onclick){
+  removeFAB();
+  const btn=document.createElement('button');
+  btn.className='fab';btn.id='fab';btn.innerHTML='+';btn.onclick=onclick;
+  document.body.appendChild(btn);
+}
+
+// ── RENDER ───────────────────────────────────────────────────────────────────
+function render(){
+  updateAlertDot();
+  const main=document.getElementById('main');
+  if(currentTab==='dashboard') main.innerHTML=renderDashboard();
+  else if(currentTab==='vehicles') { main.innerHTML=renderVehicles(); addFAB(()=>openModal('addVehicle',{})); }
+  else if(currentTab==='drivers') { main.innerHTML=renderDrivers(); addFAB(()=>openModal('addDriver',{})); }
+  else if(currentTab==='trips') main.innerHTML=renderTrips();
+  else if(currentTab==='alerts') main.innerHTML=renderAlerts();
+}
+
+// ── DASHBOARD ────────────────────────────────────────────────────────────────
+function renderDashboard(){
+  const totalRev=vehicles.reduce((a,v)=>a+v.revenue,0);
+  const active=vehicles.filter(v=>v.status==='En course').length;
+  const avail=vehicles.filter(v=>v.status==='Disponible').length;
+  const todayTrips=trips.filter(t=>t.date==='2026-05-21').length;
+  const todayRev=trips.filter(t=>t.date==='2026-05-21').reduce((a,t)=>a+t.fare,0);
+  const activeDrivers=drivers.filter(d=>d.status==='Actif').length;
+
+  const installBanner = deferredPrompt ? `
+  <div class="install-banner">
+    <span style="font-size:24px">📲</span>
+    <div class="install-banner-text">Installez VTCFleet sur votre écran d'accueil pour un accès rapide !</div>
+    <button class="install-banner-btn" onclick="installPWA()">Installer</button>
+  </div>` : '';
+
+  const statuses=[["En course","#22d3ee"],["Disponible","#4ade80"],["Maintenance","#f59e0b"],["Hors service","#f87171"]];
+
+  return `
+  ${installBanner}
+  <div class="section-title">Tableau de bord</div>
+  <div class="section-sub">Vue en temps réel de votre flotte</div>
+
+  <div class="stat-grid">
+    <div class="stat-card"><div class="stat-icon">🚗</div><div class="val">${vehicles.length}</div><div class="lbl">Véhicules</div><div class="sub" style="color:#22d3ee">${active} en course</div></div>
+    <div class="stat-card"><div class="stat-icon">✅</div><div class="val">${avail}</div><div class="lbl">Disponibles</div><div class="sub" style="color:#4ade80">Prêts</div></div>
+    <div class="stat-card"><div class="stat-icon">🗺️</div><div class="val">${todayTrips}</div><div class="lbl">Courses/jour</div><div class="sub" style="color:#a78bfa">${todayRev} € encaissés</div></div>
+    <div class="stat-card"><div class="stat-icon">💶</div><div class="val">${n(totalRev)} €</div><div class="lbl">CA du mois</div><div class="sub" style="color:#f59e0b">↑ +12%</div></div>
+    <div class="stat-card"><div class="stat-icon">👤</div><div class="val">${activeDrivers}</div><div class="lbl">Chauffeurs actifs</div><div class="sub" style="color:#22d3ee">/${drivers.length} total</div></div>
+    <div class="stat-card"><div class="stat-icon">⚠️</div><div class="val">${alerts.length}</div><div class="lbl">Alertes</div><div class="sub" style="color:#f87171">À traiter</div></div>
+  </div>
+
+  <div class="card">
+    <div class="card-header"><div class="card-title">État de la flotte</div></div>
+    ${statuses.map(([s,c])=>{const count=vehicles.filter(v=>v.status===s).length;const pct=(count/vehicles.length*100)||0;return`
+    <div style="margin-bottom:12px">
+      <div style="display:flex;justify-content:space-between;margin-bottom:5px">
+        <span style="font-size:13px;color:var(--muted)">${s}</span>
+        <span style="font-size:13px;color:${c};font-weight:700">${count}</span>
+      </div>
+      <div style="height:5px;background:rgba(255,255,255,0.06);border-radius:99px">
+        <div style="width:${pct}%;height:100%;background:${c};border-radius:99px"></div>
+      </div>
+    </div>`}).join('')}
+  </div>
+
+  <div class="card">
+    <div class="card-header"><div class="card-title">Alertes récentes</div></div>
+    ${alerts.length===0?'<div class="empty" style="padding:16px 0;text-align:left;color:#4ade80;font-size:13px">✓ Aucune alerte active</div>':alerts.slice(0,3).map(a=>`
+    <div style="display:flex;gap:10px;margin-bottom:10px;padding:10px;background:${alertColor(a.type)}10;border-radius:10px;border:1px solid ${alertColor(a.type)}20">
+      <span>${alertIcon(a.type)}</span>
+      <span style="font-size:12px;color:#cbd5e1;line-height:1.5">${a.msg}</span>
+    </div>`).join('')}
+  </div>
+
+  <div class="card">
+    <div class="card-header"><div class="card-title">Courses récentes</div></div>
+    ${trips.slice(0,4).map(t=>`
+    <div style="padding:10px 0;border-bottom:1px solid var(--border)">
+      <div style="display:flex;justify-content:space-between;margin-bottom:4px">
+        <span style="font-size:13px;font-weight:600;color:var(--text)">${t.driver}</span>
+        <span style="font-size:13px;font-weight:700;color:#4ade80">${t.fare} €</span>
+      </div>
+      <div style="font-size:12px;color:var(--dim)">${t.from} → ${t.to}</div>
+      <div style="display:flex;justify-content:space-between;margin-top:6px">
+        <span style="font-size:11px;color:var(--darker)">${t.distance} · ${t.duration}</span>
+        ${badge(t.status)}
+      </div>
+    </div>`).join('')}
+  </div>
+  `;
+}
+
+// ── VEHICLES ─────────────────────────────────────────────────────────────────
+function renderVehicles(){
+  const filtered=vehicles.filter(v=>
+    v.plate.toLowerCase().includes(searchVal)||
+    v.model.toLowerCase().includes(searchVal)||
+    v.driver.toLowerCase().includes(searchVal)
+  );
+  return `
+  <div class="section-title">Véhicules</div>
+  <div class="section-sub">${vehicles.length} véhicule(s) · tap pour détails</div>
+  <div class="search-wrap">
+    <input class="search-input" placeholder="Rechercher…" value="${searchVal}" oninput="searchVal=this.value.toLowerCase();render()" />
+  </div>
+  ${filtered.map(v=>`
+  <div class="card" onclick="openModal('viewVehicle',${v.id})" style="cursor:pointer">
+    <div class="card-header">
+      <div><div class="card-title">${v.model}</div><div class="card-sub">${v.plate}</div></div>
+      ${badge(v.status)}
+    </div>
+    <div style="font-size:13px;color:var(--muted);margin-bottom:10px">👤 ${v.driver}</div>
+    <div style="display:flex;justify-content:space-between;font-size:12px;color:var(--dim);margin-bottom:10px">
+      <span>🛣️ ${n(v.km)} km</span>
+      <span>💶 ${n(v.revenue)} €</span>
+      <span>🔧 ${v.lastService}</span>
+    </div>
+    <div style="font-size:11px;color:var(--dim);margin-bottom:5px">Carburant</div>
+    ${fuelBar(v.fuel)}
+  </div>`).join('')}
+  <div style="height:72px"></div>`;
+}
+
+// ── DRIVERS ──────────────────────────────────────────────────────────────────
+function renderDrivers(){
+  const filtered=drivers.filter(d=>d.name.toLowerCase().includes(searchVal));
+  return `
+  <div class="section-title">Chauffeurs</div>
+  <div class="section-sub">${drivers.length} chauffeur(s) · tap pour détails</div>
+  <div class="search-wrap">
+    <input class="search-input" placeholder="Rechercher un chauffeur…" value="${searchVal}" oninput="searchVal=this.value.toLowerCase();render()" />
+  </div>
+  ${filtered.map(d=>`
+  <div class="card" onclick="openModal('viewDriver',${d.id})" style="cursor:pointer">
+    <div class="card-header">
+      <div><div class="card-title">${d.name}</div><div style="font-size:12px;color:var(--dim);margin-top:2px">${d.license}</div></div>
+      ${badge(d.status)}
+    </div>
+    <div style="display:flex;gap:20px;font-size:13px">
+      <span style="color:#f59e0b;font-weight:700">★ ${d.rating}</span>
+      <span style="color:var(--muted)">${n(d.trips)} courses</span>
+      <span style="color:var(--dim)">${d.phone}</span>
+    </div>
+  </div>`).join('')}
+  <div style="height:72px"></div>`;
+}
+
+// ── TRIPS ────────────────────────────────────────────────────────────────────
+function renderTrips(){
+  const todayRev=trips.filter(t=>t.date==='2026-05-21').reduce((a,t)=>a+t.fare,0);
+  const todayTrips=trips.filter(t=>t.date==='2026-05-21').length;
+  return `
+  <div class="section-title">Courses</div>
+  <div class="section-sub">${trips.length} courses enregistrées</div>
+  <div class="stat-grid" style="grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:16px">
+    <div class="stat-card"><div class="stat-icon" style="font-size:16px">🗺️</div><div class="val" style="font-size:18px">${todayTrips}</div><div class="lbl">Aujourd'hui</div></div>
+    <div class="stat-card"><div class="stat-icon" style="font-size:16px">💶</div><div class="val" style="font-size:18px">${todayRev}€</div><div class="lbl">Du jour</div></div>
+    <div class="stat-card"><div class="stat-icon" style="font-size:16px">📍</div><div class="val" style="font-size:18px">${trips.filter(t=>t.status==='En cours').length}</div><div class="lbl">En cours</div></div>
+  </div>
+  ${trips.map(t=>`
+  <div class="card">
+    <div style="display:flex;justify-content:space-between;margin-bottom:8px">
+      <span style="font-weight:700;color:var(--text);font-size:14px">${t.driver}</span>
+      <span style="font-weight:700;color:#4ade80;font-size:15px">${t.fare} €</span>
+    </div>
+    <div style="font-size:13px;color:var(--muted);margin-bottom:6px">
+      <span style="color:var(--cyan)">📍</span> ${t.from}<br>
+      <span style="color:var(--muted)">→</span> ${t.to}
+    </div>
+    <div style="display:flex;justify-content:space-between;align-items:center">
+      <span style="font-size:12px;color:var(--dim)">${t.date} · ${t.duration} · ${t.distance}</span>
+      ${badge(t.status)}
+    </div>
+  </div>`).join('')}`;
+}
+
+// ── ALERTS ───────────────────────────────────────────────────────────────────
+function renderAlerts(){
+  return `
+  <div class="section-title">Alertes</div>
+  <div class="section-sub">${alerts.length} alerte(s) active(s)</div>
+  ${alerts.length===0?'<div class="empty" style="padding:60px 0;font-size:16px;color:#4ade80">✓ Tout est en ordre !</div>':''}
+  ${alerts.map(a=>`
+  <div class="alert-item" style="background:${alertColor(a.type)}08;border:1px solid ${alertColor(a.type)}30">
+    <span class="alert-icon">${alertIcon(a.type)}</span>
+    <div style="flex:1">
+      <div class="alert-msg">${a.msg}</div>
+      ${a.vehicle?`<div class="alert-vehicle">Véhicule : ${a.vehicle}</div>`:''}
+    </div>
+    <button class="dismiss-btn" onclick="dismissAlert(${a.id})">Ignorer</button>
+  </div>`).join('')}`;
+}
+
+// ── DISMISS ALERT ────────────────────────────────────────────────────────────
+function dismissAlert(id){
+  alerts=alerts.filter(a=>a.id!==id);save();render();
+}
+
+// ── MODALS ───────────────────────────────────────────────────────────────────
+function openModal(type, idOrData){
+  let data=idOrData;
+  if(typeof idOrData==='number'){
+    if(type.includes('Vehicle')||type.includes('vehicle')) data=vehicles.find(v=>v.id===idOrData)||{};
+    else data=drivers.find(d=>d.id===idOrData)||{};
+  }
+  window._modalData={type,data:{...data}};
+  const content=document.getElementById('modal-content');
+  if(type==='viewVehicle') content.innerHTML=modalViewVehicle(data);
+  else if(type==='addVehicle'||type==='editVehicle') content.innerHTML=modalFormVehicle(data,type==='addVehicle');
+  else if(type==='viewDriver') content.innerHTML=modalViewDriver(data);
+  else if(type==='addDriver'||type==='editDriver') content.innerHTML=modalFormDriver(data,type==='addDriver');
+  document.getElementById('modal-overlay').style.display='flex';
+}
+
+function closeModal(e){
+  if(!e||e.target===document.getElementById('modal-overlay'))
+    document.getElementById('modal-overlay').style.display='none';
+}
+
+function field(label,value,accent){
+  return`<div class="field"><div class="field-label">${label}</div><div class="field-value" ${accent?`style="color:${accent}"`:''}>${value}</div></div>`;
+}
+
+function modalViewVehicle(v){return`
+  <button class="modal-close" onclick="closeModal()">✕</button>
+  <div class="modal-title">🚗 ${v.model}</div>
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:0 20px">
+    ${field('Plaque',`<span style="font-family:monospace;color:#22d3ee">${v.plate}</span>`)}
+    ${field('Statut',badge(v.status))}
+    ${field('Chauffeur',v.driver)}
+    ${field('Kilométrage',n(v.km)+' km')}
+    ${field('Dernière révision',v.lastService)}
+    ${field('CA généré',n(v.revenue)+' €','#4ade80')}
+  </div>
+  <div class="field"><div class="field-label">Carburant</div>${fuelBar(v.fuel)}</div>
+  <div class="divider"></div>
+  <div class="btn-row">
+    <button class="btn-primary" onclick="openModal('editVehicle',${v.id})">✏️ Modifier</button>
+    <button class="btn-danger" onclick="deleteVehicle(${v.id})" style="flex:0.6">🗑️</button>
+  </div>`;}
+
+function modalFormVehicle(v,isNew){return`
+  <button class="modal-close" onclick="closeModal()">✕</button>
+  <div class="modal-title">${isNew?'Nouveau véhicule':'Modifier le véhicule'}</div>
+  <input class="modal-input" id="f-plate" placeholder="Plaque (ex: AB-123-CD)" value="${v.plate||''}"/>
+  <input class="modal-input" id="f-model" placeholder="Modèle" value="${v.model||''}"/>
+  <input class="modal-input" id="f-driver" placeholder="Chauffeur" value="${v.driver||''}"/>
+  <input class="modal-input" id="f-km" placeholder="Kilométrage" type="number" value="${v.km||''}"/>
+  <input class="modal-input" id="f-fuel" placeholder="Carburant (%)" type="number" min="0" max="100" value="${v.fuel||''}"/>
+  <select class="modal-select" id="f-status">
+    ${["Disponible","En course","Maintenance","Hors service"].map(s=>`<option value="${s}" ${v.status===s?'selected':''}>${s}</option>`).join('')}
+  </select>
+  <button class="btn-primary" onclick="saveVehicle(${isNew?'true':'false'},${v.id||0})">💾 Enregistrer</button>`;}
+
+function modalViewDriver(d){return`
+  <button class="modal-close" onclick="closeModal()">✕</button>
+  <div class="modal-title">👤 ${d.name}</div>
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:0 20px">
+    ${field('Téléphone',`<a href="tel:${d.phone.replace(/\s/g,'')}" style="color:#22d3ee;text-decoration:none">${d.phone}</a>`)}
+    ${field('Statut',badge(d.status))}
+    ${field('Permis',d.license)}
+    ${field('Note','<span style="color:#f59e0b;font-weight:700">★ '+d.rating+' / 5</span>')}
+    ${field('Total courses',n(d.trips))}
+    ${field('Depuis le',d.joined)}
+  </div>
+  <div class="divider"></div>
+  <div class="btn-row">
+    <button class="btn-primary" onclick="openModal('editDriver',${d.id})">✏️ Modifier</button>
+    <button class="btn-danger" onclick="deleteDriver(${d.id})" style="flex:0.6">🗑️</button>
+  </div>`;}
+
+function modalFormDriver(d,isNew){return`
+  <button class="modal-close" onclick="closeModal()">✕</button>
+  <div class="modal-title">${isNew?'Nouveau chauffeur':'Modifier le chauffeur'}</div>
+  <input class="modal-input" id="f-name" placeholder="Nom complet" value="${d.name||''}"/>
+  <input class="modal-input" id="f-phone" placeholder="Téléphone" type="tel" value="${d.phone||''}"/>
+  <input class="modal-input" id="f-license" placeholder="Type de permis (ex: B+VTC)" value="${d.license||''}"/>
+  <select class="modal-select" id="f-dstatus">
+    ${["Actif","En pause","Suspendu"].map(s=>`<option value="${s}" ${d.status===s?'selected':''}>${s}</option>`).join('')}
+  </select>
+  <button class="btn-primary" onclick="saveDriver(${isNew?'true':'false'},${d.id||0})">💾 Enregistrer</button>`;}
+
+// ── SAVE / DELETE ────────────────────────────────────────────────────────────
+function saveVehicle(isNew,id){
+  const data={
+    plate:document.getElementById('f-plate').value,
+    model:document.getElementById('f-model').value,
+    driver:document.getElementById('f-driver').value,
+    km:parseInt(document.getElementById('f-km').value)||0,
+    fuel:parseInt(document.getElementById('f-fuel').value)||0,
+    status:document.getElementById('f-status').value,
+  };
+  if(isNew){vehicles.push({...data,id:Date.now(),revenue:0,lastService:new Date().toISOString().slice(0,10)});}
+  else{vehicles=vehicles.map(v=>v.id===id?{...v,...data}:v);}
+  save();closeModal();render();
+}
+
+function deleteVehicle(id){
+  if(!confirm('Supprimer ce véhicule ?')) return;
+  vehicles=vehicles.filter(v=>v.id!==id);save();closeModal();render();
+}
+
+function saveDriver(isNew,id){
+  const data={
+    name:document.getElementById('f-name').value,
+    phone:document.getElementById('f-phone').value,
+    license:document.getElementById('f-license').value,
+    status:document.getElementById('f-dstatus').value,
+  };
+  if(isNew){drivers.push({...data,id:Date.now(),rating:5.0,trips:0,joined:new Date().toISOString().slice(0,10)});}
+  else{drivers=drivers.map(d=>d.id===id?{...d,...data}:d);}
+  save();closeModal();render();
+}
+
+function deleteDriver(id){
+  if(!confirm('Supprimer ce chauffeur ?')) return;
+  drivers=drivers.filter(d=>d.id!==id);save();closeModal();render();
+}
+
+// ── PWA INSTALL ──────────────────────────────────────────────────────────────
+window.addEventListener('beforeinstallprompt', e => {
+  e.preventDefault();deferredPrompt=e;render();
+});
+
+function installPWA(){
+  if(!deferredPrompt) return;
+  deferredPrompt.prompt();
+  deferredPrompt.userChoice.then(()=>{deferredPrompt=null;render();});
+}
+
+window.addEventListener('appinstalled', ()=>{deferredPrompt=null;render();});
+
+// ── SERVICE WORKER ───────────────────────────────────────────────────────────
+if('serviceWorker' in navigator){
+  navigator.serviceWorker.register('./sw.js').catch(()=>{});
+}
+
+// ── INIT ─────────────────────────────────────────────────────────────────────
+render();
+</script>
+</body>
+</html>
